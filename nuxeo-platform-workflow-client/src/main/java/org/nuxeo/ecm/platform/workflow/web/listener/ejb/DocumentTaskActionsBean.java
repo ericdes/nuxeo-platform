@@ -204,35 +204,8 @@ public class DocumentTaskActionsBean extends InputController implements
         // Notify
         Events.instance().raiseEvent(
                 EventNames.WORKFLOW_USER_ASSIGNMENT_CHANGED);
-        StringBuilder comment = new StringBuilder();
-        if (isGroup) {
-            comment.append(resourcesAccessor.getMessages().get("label.log.comment.assignedToGroup"));
-            comment.append(" ");
-            comment.append(principalName);
-        } else {
-            comment.append(resourcesAccessor.getMessages().get("label.log.comment.assignedToUser"));
-            comment.append(" ");
-            NuxeoPrincipal user;
-            try {
-                user = userManager.getPrincipal(principalName);
-            } catch (ClientException e) {
-                throw new WMWorkflowException(e);
-            }
-            if (user == null) {
-                comment.append(principalName);
-            } else {
-                comment.append(user.getFirstName());
-                comment.append(" ");
-                comment.append(user.getLastName());
-                comment.append(" (");
-                comment.append(principalName);
-                comment.append(")");
-            }
-        }
-        if (userComment != null && userComment.trim().length() > 0) {
-            comment.append(": ");
-            comment.append(userComment);
-        }
+        
+        String comment = buildComment(isGroup, principalName);
 
         Map<String, Serializable> eventInfo = new HashMap<String, Serializable>();
 
@@ -242,7 +215,7 @@ public class DocumentTaskActionsBean extends InputController implements
         eventInfo.put("directive", taskInstance.getDirective());
         eventInfo.put("dueDate", taskInstance.getDueDate());
 
-        notifyEvent(WorkflowEventTypes.WORKFLOW_TASK_ASSIGNED, comment.toString(),
+        notifyEvent(WorkflowEventTypes.WORKFLOW_TASK_ASSIGNED, comment,
                 reviewModel.getProcessInstanceName(), eventInfo);
         Events.instance().raiseEvent(AuditEventTypes.HISTORY_CHANGED);
 
@@ -440,8 +413,7 @@ public class DocumentTaskActionsBean extends InputController implements
 
         WAPI wapi = workflowBeansDelegate.getWAPIBean();
 
-        String comment = "=> " + currentUser.getName() + " ( "
-                + taskActionComment + " )";
+        String comment = buildComment(false, currentUser.getName());
 
         Map<String, Serializable> eventInfo = new HashMap<String, Serializable>();
         eventInfo.put(WorkflowConstants.WORKFLOW_CREATOR,
@@ -1301,4 +1273,39 @@ public class DocumentTaskActionsBean extends InputController implements
         }
     }
 
+    private String buildComment(boolean isGroup, String principalName) throws WMWorkflowException {
+
+        StringBuilder comment = new StringBuilder();
+        if (isGroup) {
+            comment.append(resourcesAccessor.getMessages().get("label.log.comment.assignedToGroup"));
+            comment.append(" ");
+            comment.append(principalName);
+        } else {
+            comment.append(resourcesAccessor.getMessages().get("label.log.comment.assignedToUser"));
+            comment.append(" ");
+            NuxeoPrincipal user;
+            try {
+                user = userManager.getPrincipal(principalName);
+            } catch (ClientException e) {
+                throw new WMWorkflowException(e);
+            }
+            if (user == null) {
+                comment.append(principalName);
+            } else {
+                comment.append(user.getFirstName());
+                comment.append(" ");
+                comment.append(user.getLastName());
+                comment.append(" (");
+                comment.append(principalName);
+                comment.append(")");
+            }
+        }
+        if (userComment != null && userComment.trim().length() > 0) {
+            comment.append(": ");
+            comment.append(userComment);
+        }
+        
+        return comment.toString();
+    }
+    
 }
